@@ -55,7 +55,7 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
 // Main clock-in function
 async function clockIn() {
   try {
-    // const loginUrl = process.env.LOGIN_URL as string;
+    const loginUrl = process.env.LOGIN_URL as string;
     const loginData = {
       "email": process.env.LOGIN_EMAIL,
       "password": process.env.LOGIN_PASSWORD,
@@ -63,7 +63,7 @@ async function clockIn() {
     };
     
     console.log('Logging in...');
-    const loginResponse = await performPostRequest<PostResponse>("https://backend.libertypayng.com/user/login/create/", loginData as LoginData, {"Content-Type": "application/json"});
+    const loginResponse = await performPostRequest<PostResponse>(loginUrl, loginData as LoginData, {"Content-Type": "application/json"});
     if (loginResponse && loginResponse.access) {
       const token = loginResponse.access;
       console.log('Login successful, proceeding with clock-in...');
