@@ -1,9 +1,12 @@
-// Function to update status display
-function updateStatus(message, isError = false) {
-  const statusDiv = document.getElementById('status');
-  statusDiv.textContent = message;
-  statusDiv.style.color = isError ? 'red' : 'green';
-}
+const express = require('express');
+const dotenv = require('dotenv');
+const fetch = require('node-fetch');
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+app.use(express.json());
 
 // Function to perform a POST request and return the response
 async function performPostRequest(url, postData, headers = {}) {
@@ -21,8 +24,7 @@ async function performPostRequest(url, postData, headers = {}) {
     return await response.json();
   } catch (error) {
     console.error('Error in POST request:', error);
-    updateStatus(`Error: ${error.message}`, true);
-    return null;
+    throw error;
   }
 }
 
@@ -32,32 +34,32 @@ async function randomDelay() {
   const maxDelay = 9;
   const delayMinutes = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
   const delayMs = delayMinutes * 60 * 1000;
-  updateStatus(`Waiting for ${delayMinutes} minutes before proceeding...`);
+  console.log(`Waiting for ${delayMinutes} minutes before proceeding...`);
   return new Promise(resolve => setTimeout(resolve, delayMs));
 }
 
-// Main execution flow with random delay
-async function main() {
+// Main clock-in function
+async function clockIn() {
   try {
     await randomDelay();
     
-    const loginUrl = window.env.LOGIN_URL;
+    const loginUrl = process.env.LOGIN_URL;
     const loginData = {
-      "email": window.env.LOGIN_EMAIL,
-      "password": window.env.LOGIN_PASSWORD,
-      "device_type": window.env.DEVICE_TYPE
+      "email": process.env.LOGIN_EMAIL,
+      "password": process.env.LOGIN_PASSWORD,
+      "device_type": process.env.DEVICE_TYPE
     };
     
-    updateStatus('Logging in...');
+    console.log('Logging in...');
     const loginResponse = await performPostRequest(loginUrl, loginData, {"Content-Type": "application/json"});
     if (loginResponse && loginResponse.access) {
       const token = loginResponse.access;
-      updateStatus('Login successful, proceeding with clock-in...');
+      console.log('Login successful, proceeding with clock-in...');
 
-      const actionUrl = `${window.env.ACTION_URL}?company_uuid=${window.env.COMPANY_UUID}`;
+      const actionUrl = `${process.env.ACTION_URL}?company_uuid=${process.env.COMPANY_UUID}`;
       const actionData = {
-        latitude: Number(window.env.LATITUDE),
-        longitude: Number(window.env.LONGITUDE)
+        latitude: Number(process.env.LATITUDE),
+        longitude: Number(process.env.LONGITUDE)
       };
       const headers = {
         'Content-Type': 'application/json',
@@ -66,27 +68,42 @@ async function main() {
 
       const actionResponse = await performPostRequest(actionUrl, actionData, headers);
       if (actionResponse) {
-        updateStatus('Clock-in successful!');
+        console.log('Clock-in successful!');
+        return { success: true, message: 'Clock-in successful!' };
       }
     } else {
-      updateStatus('Login failed: Token not found in response.', true);
+      throw new Error('Login failed: Token not found in response.');
     }
   } catch (error) {
-    updateStatus(`Error: ${error.message}`, true);
+    console.error(`Error during clock-in: ${error.message}`);
+    throw error;
   }
 }
 
-// Initialize environment variables from window.env
-window.env = {
-  LOGIN_URL: process.env.NEXT_PUBLIC_LOGIN_URL || '',
-  LOGIN_EMAIL: process.env.NEXT_PUBLIC_LOGIN_EMAIL || '',
-  LOGIN_PASSWORD: process.env.NEXT_PUBLIC_LOGIN_PASSWORD || '',
-  DEVICE_TYPE: process.env.NEXT_PUBLIC_DEVICE_TYPE || '',
-  ACTION_URL: process.env.NEXT_PUBLIC_ACTION_URL || '',
-  COMPANY_UUID: process.env.NEXT_PUBLIC_COMPANY_UUID || '',
-  LATITUDE: process.env.NEXT_PUBLIC_LATITUDE || '0',
-  LONGITUDE: process.env.NEXT_PUBLIC_LONGITUDE || '0'
-};
+// Endpoint to trigger clock-in
+app.get('/clock-in', async (req, res) => {
+  try {
+    const result = await clockIn();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
-// Start the main process
-main().catch(error => updateStatus(`Unexpected error: ${error.message}`, true));
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get("/", (req, res) => {
+  try {
+    res.send({ templeHS: "Welcome to TempleHS!" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
