@@ -1,6 +1,6 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const fetch = require('node-fetch');
+import dotenv from 'dotenv';
+import express, { Request, Response } from 'express';
+import fetch from 'node-fetch';
 
 // Load environment variables
 dotenv.config();
@@ -9,7 +9,29 @@ const app = express();
 app.use(express.json());
 
 // Function to perform a POST request and return the response
-async function performPostRequest(url, postData, headers = {}) {
+interface PostResponse {
+  access?: string;
+  [key: string]: any;
+}
+
+interface LoginData {
+  email: string;
+  password: string;
+  device_type: string;
+}
+
+interface ActionData {
+  latitude: number;
+  longitude: number;
+}
+
+interface ClockInResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+async function performPostRequest<T>(url: string, postData: any, headers: Record<string, string> = {}): Promise<T> {
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -43,7 +65,7 @@ async function clockIn() {
   try {
     await randomDelay();
     
-    const loginUrl = process.env.LOGIN_URL;
+    const loginUrl = process.env.LOGIN_URL as string;
     const loginData = {
       "email": process.env.LOGIN_EMAIL,
       "password": process.env.LOGIN_PASSWORD,
@@ -51,7 +73,7 @@ async function clockIn() {
     };
     
     console.log('Logging in...');
-    const loginResponse = await performPostRequest(loginUrl, loginData, {"Content-Type": "application/json"});
+    const loginResponse = await performPostRequest<PostResponse>(loginUrl, loginData as LoginData, {"Content-Type": "application/json"});
     if (loginResponse && loginResponse.access) {
       const token = loginResponse.access;
       console.log('Login successful, proceeding with clock-in...');
@@ -66,7 +88,7 @@ async function clockIn() {
         'Authorization': `Bearer ${token}`,
       };
 
-      const actionResponse = await performPostRequest(actionUrl, actionData, headers);
+      const actionResponse = await performPostRequest<any>(actionUrl, actionData as ActionData, headers);
       if (actionResponse) {
         console.log('Clock-in successful!');
         return { success: true, message: 'Clock-in successful!' };
@@ -75,31 +97,34 @@ async function clockIn() {
       throw new Error('Login failed: Token not found in response.');
     }
   } catch (error) {
-    console.error(`Error during clock-in: ${error.message}`);
+    console.error(`Error during clock-in: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
 
 // Endpoint to trigger clock-in
-app.get('/clock-in', async (req, res) => {
+app.get('/clock-in', async (req: Request, res: Response) => {
   try {
     const result = await clockIn();
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    });
   }
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
   try {
-    res.send({ templeHS: "Welcome to TempleHS!" });
+    res.send({ templeHS: "Welcome to FaaS...!" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
 });
 
