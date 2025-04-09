@@ -55,7 +55,7 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
 // Main clock-in function
 async function clockIn() {
   try {
-    const loginUrl = process.env.LOGIN_URL as string;
+    // const loginUrl = process.env.LOGIN_URL as string;
     const loginData = {
       "email": process.env.LOGIN_EMAIL,
       "password": process.env.LOGIN_PASSWORD,
@@ -63,12 +63,13 @@ async function clockIn() {
     };
     
     console.log('Logging in...');
-    const loginResponse = await performPostRequest<PostResponse>(loginUrl, loginData as LoginData, {"Content-Type": "application/json"});
+    const loginResponse = await performPostRequest<PostResponse>("https://backend.libertypayng.com/user/login/create/", loginData as LoginData, {"Content-Type": "application/json"});
     if (loginResponse && loginResponse.access) {
       const token = loginResponse.access;
       console.log('Login successful, proceeding with clock-in...');
 
-      const actionUrl = `${process.env.ACTION_URL}?company_uuid=${process.env.COMPANY_UUID}`;
+      // const actionUrl = `${process.env.ACTION_URL}?company_uuid=${process.env.COMPANY_UUID}`;
+      const actionUrl = `https://management.libertypayng.com/clock-app/clock-in/?company_uuid=f92f464b-b10a-46b9-bfd2-74b6956e85e5`;
       const actionData = {
         latitude: Number(process.env.LATITUDE),
         longitude: Number(process.env.LONGITUDE)
