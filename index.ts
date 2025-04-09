@@ -50,21 +50,9 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
   }
 }
 
-// Function to delay execution for a random duration between 1-9 minutes
-async function randomDelay() {
-  const minDelay = 1;
-  const maxDelay = 9;
-  const delayMinutes = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-  const delayMs = delayMinutes * 60 * 1000;
-  console.log(`Waiting for ${delayMinutes} minutes before proceeding...`);
-  return new Promise(resolve => setTimeout(resolve, delayMs));
-}
-
 // Main clock-in function
 async function clockIn() {
   try {
-    await randomDelay();
-    
     const loginUrl = process.env.LOGIN_URL as string;
     const loginData = {
       "email": process.env.LOGIN_EMAIL,
@@ -122,7 +110,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.get("/", (req: Request, res: Response) => {
   try {
-    res.send({ templeHS: "Welcome to FaaS...!" });
+    res.send({ clock_in: "Welcome to FaaS...!" });
   } catch (error) {
     res.status(500).json({ message: error instanceof Error ? error.message : String(error) });
   }
