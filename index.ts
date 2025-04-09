@@ -32,6 +32,8 @@ interface ClockInResponse {
 }
 
 async function performPostRequest<T>(url: string, postData: any, headers: Record<string, string> = {}): Promise<T> {
+  console.log('url', url)
+  console.log('postData', postData)
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -91,7 +93,8 @@ async function clockIn() {
 }
 
 // Endpoint to trigger clock-in
-app.get('/clock-in', async (req: Request, res: Response) => {
+app.get('/clock', async (req: Request, res: Response) => {
+  console.log('here it is')
   try {
     const result = await clockIn();
     res.json(result);
