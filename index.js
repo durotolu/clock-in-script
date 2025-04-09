@@ -1,8 +1,3 @@
-// import dotenv from 'dotenv';
-
-// Load environment variables
-// dotenv.config();
-
 // Function to perform a POST request and return the response
 async function performPostRequest(url, postData, headers = {}) {
     try {
@@ -24,37 +19,48 @@ async function performPostRequest(url, postData, headers = {}) {
   }
   
   // Step 1: Log in to obtain the token
-  const loginUrl = process.env.LOGIN_URL;
-  const loginData = {
-    "email": process.env.LOGIN_EMAIL,
-    "password": process.env.LOGIN_PASSWORD,
-    "device_type": process.env.DEVICE_TYPE
-  };
+  // Function to delay execution for a random duration between 1-9 minutes
+  async function randomDelay() {
+    const minDelay = 1;
+    const maxDelay = 9;
+    const delayMinutes = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    const delayMs = delayMinutes * 60 * 1000;
+    console.log(`Waiting for ${delayMinutes} minutes before proceeding...`);
+    return new Promise(resolve => setTimeout(resolve, delayMs));
+  }
   
-  performPostRequest(loginUrl, loginData, {"Content-Type": "application/json"})
-    .then((loginResponse) => {
-      if (loginResponse && loginResponse.access) {
-        const token = loginResponse.access;
+  // Main execution flow with random delay
+  async function main() {
+    await randomDelay();
+    
+    const loginUrl = process.env.LOGIN_URL;
+    const loginData = {
+      "email": process.env.LOGIN_EMAIL,
+      "password": process.env.LOGIN_PASSWORD,
+      "device_type": process.env.DEVICE_TYPE
+    };
+    
+    const loginResponse = await performPostRequest(loginUrl, loginData, {"Content-Type": "application/json"});
+    if (loginResponse && loginResponse.access) {
+      const token = loginResponse.access;
   
-        // Step 2: Use the token to perform an action on another endpoint
-        const actionUrl = `${process.env.ACTION_URL}?company_uuid=${process.env.COMPANY_UUID}`;
-        const actionData = {
-          latitude: Number(process.env.LATITUDE),
-          longitude: Number(process.env.LONGITUDE)
-        };
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        };
+      const actionUrl = `${process.env.ACTION_URL}?company_uuid=${process.env.COMPANY_UUID}`;
+      const actionData = {
+        latitude: Number(process.env.LATITUDE),
+        longitude: Number(process.env.LONGITUDE)
+      };
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
   
-        return performPostRequest(actionUrl, actionData, headers);
-      } else {
-        console.error('Token not found in login response.');
-        return null;
-      }
-    })
-    .then((actionResponse) => {
+      const actionResponse = await performPostRequest(actionUrl, actionData, headers);
       if (actionResponse) {
         console.log('Action Response:', actionResponse);
       }
-    });
+    } else {
+      console.error('Token not found in login response.');
+    }
+  }
+  
+  main().catch(error => console.error('Error:', error));
