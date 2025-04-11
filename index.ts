@@ -53,12 +53,11 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
 }
 
 // Main clock-in function
-async function clockIn() {
+async function clockIn(email?: string, password?: string) {
   try {
-    // const loginUrl = process.env.LOGIN_URL as string;
     const loginData = {
-      "email": process.env.LOGIN_EMAIL,
-      "password": process.env.LOGIN_PASSWORD,
+      "email": email, // || process.env.LOGIN_EMAIL,
+      "password": password, // || process.env.LOGIN_PASSWORD,
       "device_type": process.env.DEVICE_TYPE
     };
     
@@ -94,10 +93,16 @@ async function clockIn() {
 }
 
 // Endpoint to trigger clock-in
-app.get('/clock', async (req: Request, res: Response) => {
-  console.log('here it is')
+app.get('/clock-in', async (req: Request, res: Response) => {
+  console.log('Clock-in request received');
   try {
-    const result = await clockIn();
+    const { email, password } = req.query;
+    console.log('email', email)
+    console.log('password', password)
+    if (!email || !password) {
+      throw new Error('Email and password are required.');
+    }
+    const result = await clockIn(email as string, password as string);
     res.json(result);
   } catch (error) {
     res.status(500).json({ 
