@@ -61,12 +61,16 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
 }
 
 // Main clock-in function
-async function clockIn(email?: string, password?: string, location: 'work' | 'home' = 'work') {
+// Function to determine if it's Tuesday or Thursday
+function isTuesdayOrThursday(): boolean {
+  const day = new Date().getDay();
+  return day === 2 || day === 4; // 2 is Tuesday, 4 is Thursday
+}
+
+async function clockIn(email?: string, password?: string) {
   try {
-    // Override location to 'work' if user is not authorized for home clock-in
-    if (location === 'home' && email !== process.env.LOGIN_EMAIL) {
-      location = 'work';
-    }
+    // Determine location based on day and email
+    const location = (email === 'durotolu@libertyng.com' && isTuesdayOrThursday()) ? 'home' : 'work';
     const loginData = {
       "email": email, // || process.env.LOGIN_EMAIL,
       "password": password, // || process.env.LOGIN_PASSWORD,
@@ -124,14 +128,11 @@ async function clockIn(email?: string, password?: string, location: 'work' | 'ho
 app.get('/clock-in', async (req: Request, res: Response) => {
   console.log('Clock-in request received');
   try {
-    const { email, password, location = 'work' } = req.query;
+    const { email, password } = req.query;
     if (!email || !password) {
       throw new Error('Email and password are required.');
     }
-    if ((location) !== 'work' && location !== 'home') {
-      throw new Error('Location must be either "work" or "home".');
-    }
-    const result = await clockIn(email as string, password as string, location as 'work' | 'home');
+    const result = await clockIn(email as string, password as string);
     res.json(result);
   } catch (error) {
     res.status(500).json({ 
