@@ -42,8 +42,6 @@ interface ClockInResponse {
 }
 
 async function performPostRequest<T>(url: string, postData: any, headers: Record<string, string> = {}): Promise<T> {
-  console.log('url', url)
-  console.log('postData', postData)
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -65,6 +63,10 @@ async function performPostRequest<T>(url: string, postData: any, headers: Record
 // Main clock-in function
 async function clockIn(email?: string, password?: string, location: 'work' | 'home' = 'work') {
   try {
+    // Override location to 'work' if user is not authorized for home clock-in
+    if (location === 'home' && email !== process.env.LOGIN_EMAIL) {
+      location = 'work';
+    }
     const loginData = {
       "email": email, // || process.env.LOGIN_EMAIL,
       "password": password, // || process.env.LOGIN_PASSWORD,
@@ -104,8 +106,6 @@ async function clockIn(email?: string, password?: string, location: 'work' | 'ho
         'Authorization': `Bearer ${token}`,
       };
 
-      console.log('actionData', actionData);
-
       const actionResponse = await performPostRequest<any>(actionUrl, actionData as ActionData, headers);
       if (actionResponse) {
         console.log('Clock-in successful!');
@@ -125,9 +125,6 @@ app.get('/clock-in', async (req: Request, res: Response) => {
   console.log('Clock-in request received');
   try {
     const { email, password, location = 'work' } = req.query;
-    console.log('email', email)
-    console.log('password', password)
-    console.log('location', location)
     if (!email || !password) {
       throw new Error('Email and password are required.');
     }
